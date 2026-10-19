@@ -1,12 +1,28 @@
 from datetime import UTC, datetime
+from typing import Annotated
 
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from app.db import Database
-from app.models import Book, BookCreate, ObjectIdStr
+from app.models import Book, BookCreate, ObjectIdStr, Page
 
 router = APIRouter(prefix="/books", tags=["books"])
+
+
+@router.get("")
+async def list_books(
+    db: Database,
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> Page[Book]:
+    cursor = db.books.find().sort("_id").skip((page - 1) * limit).limit(limit)
+    return Page(
+        items=[Book.model_validate(book) async for book in cursor],
+        total=await db.books.count_documents({}),
+        page=page,
+        limit=limit,
+    )
 
 
 @router.get("/{book_id}")

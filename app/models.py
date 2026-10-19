@@ -40,6 +40,13 @@ class Book(BaseModel):
     updated_at: datetime
 
 
+class Page[T](BaseModel):
+    items: list[T]
+    total: int
+    page: int
+    limit: int
+
+
 class BookCreate(BaseModel):
     title: str
     publisher: str
