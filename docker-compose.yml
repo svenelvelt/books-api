@@ -1,4 +1,27 @@
 services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE: books
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      # Liveness only: readiness (MongoDB reachable) is for load balancer
+      # routing. The slim image has no curl, so the probe uses Python.
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
   mongodb:
     image: mongo:8.0
     ports:
