@@ -43,3 +43,20 @@ def test_get_book_returns_book(client, mongo_db):
         "created_at": "2017-01-12T00:00:00Z",
         "updated_at": "2017-01-12T00:00:00Z",
     }
+
+def test_create_book_embeds_authors(client, mongo_db):
+    author_id = mongo_db.authors.insert_one({"name": "Mark Lutz", "birth_date": None}).inserted_id
+
+    response = client.post("/books", json={
+        "title": "Learning Python",
+        "publisher": "O'Reilly Media",
+        "author_ids": [str(author_id)],
+        "pages": 1648,
+        "tags": ["Python"],
+    })
+
+    assert response.status_code == 201
+    book = response.json()
+    assert book["authors"] == [{"id": str(author_id), "name": "Mark Lutz"}]
+    assert book["created_at"] == book["updated_at"]
+    assert client.get(f"/books/{book['id']}").json() == book
