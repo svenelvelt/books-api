@@ -82,3 +82,9 @@ async def create_book(db: Database, book_create: BookCreate) -> Book:
     }
     result = await db.books.insert_one(book)
     return Book.model_validate(book | {"_id": result.inserted_id})
+
+@router.delete("/{book_id}", status_code=204)
+async def delete_book(db: Database, book_id: ObjectIdStr) -> None:
+    result = await db.books.delete_one({"_id": ObjectId(book_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Book not found")

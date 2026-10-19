@@ -155,3 +155,12 @@ def test_create_book_with_unknown_author_returns_422(client, mongo_db):
     assert response.status_code == 422
     assert response.json() == {"detail": f"Unknown author ids: {unknown}"}
     assert mongo_db.books.count_documents({}) == 0
+
+def test_delete_book_removes_it(client, insert_book):
+    book = insert_book()
+
+    response = client.delete(f"/books/{book['_id']}")
+
+    assert response.status_code == 204
+    assert response.content == b""
+    assert client.get(f"/books/{book['_id']}").status_code == 404
