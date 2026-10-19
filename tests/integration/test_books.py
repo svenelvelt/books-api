@@ -296,3 +296,21 @@ def test_create_book_with_invalid_body_returns_422_and_stores_nothing(
     errors = assert_error(response, 422, "validation_error")["errors"]
     assert sorted(error["loc"][1] for error in errors) == ["pages", "title"]
     assert mongo_db.books.count_documents({}) == 0
+
+
+def test_create_book_returns_location_of_the_new_book(client, insert_author):
+    author = insert_author()
+
+    response = client.post(
+        "/books",
+        json={
+            "title": "Learning Python",
+            "publisher": "O'Reilly Media",
+            "author_ids": [str(author["_id"])],
+            "pages": 1648,
+        },
+    )
+
+    book = response.json()
+    assert response.headers["location"] == f"/books/{book['id']}"
+    assert client.get(response.headers["location"]).json() == book

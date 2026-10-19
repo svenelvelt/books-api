@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from bson import ObjectId
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request, Response
 from pymongo import ReturnDocument
 
 from app.db import Database
@@ -73,7 +73,9 @@ async def _embed_authors(db: Database, author_ids: list[str]) -> list[dict]:
 
 
 @router.post("", status_code=201)
-async def create_book(db: Database, book_create: BookCreate) -> Book:
+async def create_book(
+    db: Database, book_create: BookCreate, request: Request, response: Response
+) -> Book:
     authors = await _embed_authors(db, book_create.author_ids)
     now = _now()
     book = book_create.model_dump(exclude={"author_ids"}) | {
@@ -82,6 +84,8 @@ async def create_book(db: Database, book_create: BookCreate) -> Book:
         "updated_at": now,
     }
     result = await db.books.insert_one(book)
+    book_id = str(result.inserted_id)
+    response.headers["Location"] = request.url_for("get_book", book_id=book_id).path
     return Book.model_validate(book | {"_id": result.inserted_id})
 
 

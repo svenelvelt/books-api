@@ -171,3 +171,39 @@ def test_created_author_can_be_used_for_a_book(client):
 
     assert book.status_code == 201
     assert client.get("/authors").json()["items"] == [author | {"book_count": 1}]
+
+
+def test_create_author_returns_location_of_the_new_author(client):
+    response = client.post("/authors", json={"name": "Mark Lutz"})
+
+    author = response.json()
+    assert response.headers["location"] == f"/authors/{author['id']}"
+    assert client.get(response.headers["location"]).json() == author
+
+
+def test_get_author_returns_author(client, insert_author):
+    author = insert_author(
+        name="Jane Example", birth_date=datetime(1960, 5, 1, tzinfo=UTC)
+    )
+
+    response = client.get(f"/authors/{author['_id']}")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": str(author["_id"]),
+        "name": "Jane Example",
+        "birth_date": "1960-05-01",
+    }
+
+
+def test_get_unknown_author_returns_404(client):
+    response = client.get(f"/authors/{ObjectId()}")
+
+    assert_error(response, 404, "author_not_found")
+
+
+def test_get_author_with_invalid_id_returns_422(client):
+    response = client.get("/authors/invalid_id")
+
+    error = assert_error(response, 422, "validation_error")["errors"][0]
+    assert error["loc"] == ["path", "author_id"]
