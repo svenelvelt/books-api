@@ -5,7 +5,12 @@ from fastapi import Depends, Query
 from pydantic import BaseModel
 from pymongo.asynchronous.collection import AsyncCollection
 
-from app.models import Page
+
+class Page[T](BaseModel):
+    items: list[T]
+    total: int
+    page: int
+    limit: int
 
 
 @dataclass(frozen=True)

@@ -8,8 +8,8 @@ from pymongo import ReturnDocument
 
 from app.db import Database
 from app.errors import BookNotFound, UnknownAuthors
-from app.models import Book, BookCreate, BookUpdate, ObjectIdStr, Page
-from app.pagination import PageParams, paginate
+from app.models import Book, BookCreate, BookUpdate, ObjectIdStr
+from app.pagination import Page, PageParams, paginate
 
 router = APIRouter(prefix="/books", tags=["books"])
 

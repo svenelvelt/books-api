@@ -3,8 +3,8 @@ from fastapi import APIRouter
 
 from app.db import Database
 from app.errors import AuthorNotFound
-from app.models import AuthorWithBookCount, Book, ObjectIdStr, Page
-from app.pagination import PageParams, paginate
+from app.models import AuthorWithBookCount, Book, ObjectIdStr
+from app.pagination import Page, PageParams, paginate
 
 router = APIRouter(prefix="/authors", tags=["authors"])
 
