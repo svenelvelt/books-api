@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from bson import ObjectId
 
 from tests.helpers import assert_error
@@ -63,3 +65,57 @@ def test_author_books_with_invalid_id_returns_422(client):
 
     error = assert_error(response, 422, "validation_error")["errors"][0]
     assert error["loc"] == ["path", "author_id"]
+
+
+def test_list_authors_includes_book_count(client, insert_author, insert_book):
+    mark = insert_author(name="Mark Lutz")
+    harry = insert_author(name="Harry Percival")
+    insert_author(name="Nobody Yet")
+    mark_ref = {"id": mark["_id"], "name": "Mark Lutz"}
+    insert_book(authors=[mark_ref])
+    insert_book(authors=[mark_ref, {"id": harry["_id"], "name": "Harry Percival"}])
+
+    response = client.get("/authors")
+
+    assert response.status_code == 200
+    assert [(a["name"], a["book_count"]) for a in response.json()["items"]] == [
+        ("Mark Lutz", 2),
+        ("Harry Percival", 1),
+        ("Nobody Yet", 0),
+    ]
+
+
+def test_list_authors_paginates_and_counts_all_authors(client, insert_author):
+    for name in ["A", "B", "C"]:
+        insert_author(name=name)
+
+    first = client.get("/authors", params={"limit": 2}).json()
+    second = client.get("/authors", params={"page": 2, "limit": 2}).json()
+
+    assert [author["name"] for author in first["items"]] == ["A", "B"]
+    assert [author["name"] for author in second["items"]] == ["C"]
+    assert first["total"] == second["total"] == 3
+
+
+def test_list_authors_returns_birth_date_as_date(client, insert_author):
+    author = insert_author(
+        name="Jane Example", birth_date=datetime(1960, 5, 1, tzinfo=UTC)
+    )
+    insert_author(name="Unknown Birthday", birth_date=None)
+
+    items = client.get("/authors").json()["items"]
+
+    assert items == [
+        {
+            "id": str(author["_id"]),
+            "name": "Jane Example",
+            "birth_date": "1960-05-01",
+            "book_count": 0,
+        },
+        {
+            "id": items[1]["id"],
+            "name": "Unknown Birthday",
+            "birth_date": None,
+            "book_count": 0,
+        },
+    ]

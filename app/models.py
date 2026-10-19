@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
 
 from bson import ObjectId
@@ -83,3 +83,10 @@ class BookUpdate(BaseModel):
         if not self.model_fields_set:
             raise ValueError("at least one field is required")
         return self
+
+
+class AuthorWithBookCount(BaseModel):
+    id: ObjectIdStr = Field(validation_alias="_id")
+    name: str
+    birth_date: date | None
+    book_count: int
