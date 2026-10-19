@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from pymongo import AsyncMongoClient
 
-from app import health
+from app import books, health
 from app.config import Settings
 
 
@@ -22,6 +22,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="Books API", lifespan=lifespan)
     app.include_router(health.router)
+    app.include_router(books.router)
     return app
 
 
