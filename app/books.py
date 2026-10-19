@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -10,16 +11,39 @@ from app.models import Book, BookCreate, ObjectIdStr, Page
 router = APIRouter(prefix="/books", tags=["books"])
 
 
+def _contains(text: str) -> dict:
+    return {"$regex": re.escape(text), "$options": "i"}
+
+
+def build_book_filter(
+    title: str | None = None,
+    author: str | None = None,
+    tags: list[str] | None = None,
+) -> dict:
+    query = {}
+    if title:
+        query["title"] = _contains(title)
+    if author:
+        query["authors.name"] = _contains(author)
+    if tags:
+        query["tags"] = {"$all": tags}
+    return query
+
+
 @router.get("")
 async def list_books(
     db: Database,
     page: Annotated[int, Query(ge=1)] = 1,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    title: str | None = None,
+    author: str | None = None,
+    tags: Annotated[list[str] | None, Query()] = None,
 ) -> Page[Book]:
-    cursor = db.books.find().sort("_id").skip((page - 1) * limit).limit(limit)
+    query = build_book_filter(title=title, author=author, tags=tags)
+    cursor = db.books.find(query).sort("_id").skip((page - 1) * limit).limit(limit)
     return Page(
         items=[Book.model_validate(book) async for book in cursor],
-        total=await db.books.count_documents({}),
+        total=await db.books.count_documents(query),
         page=page,
         limit=limit,
     )

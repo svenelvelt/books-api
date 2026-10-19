@@ -56,6 +56,73 @@ def test_list_books_paginates_in_insertion_order(client, insert_book):
     }
 
 
+def test_list_books_filters_by_title_case_insensitive_substring(client, insert_book):
+    for title in ["Learning Python", "Fluent PYTHON", "Clean Code"]:
+        insert_book(title=title)
+
+    response = client.get("/books", params={"title": "python"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [book["title"] for book in body["items"]] == [
+        "Learning Python",
+        "Fluent PYTHON",
+    ]
+    assert body["total"] == 2
+
+
+def test_list_books_filters_by_any_author_name(client, insert_book):
+    insert_book(
+        title="Learning Python", authors=[{"id": ObjectId(), "name": "Mark Lutz"}]
+    )
+    insert_book(
+        title="Architecture Patterns",
+        authors=[
+            {"id": ObjectId(), "name": "Harry Percival"},
+            {"id": ObjectId(), "name": "Bob Gregory"},
+        ],
+    )
+
+    by_first = client.get("/books", params={"author": "mark"}).json()
+    by_coauthor = client.get("/books", params={"author": "gregory"}).json()
+
+    assert [book["title"] for book in by_first["items"]] == ["Learning Python"]
+    assert [book["title"] for book in by_coauthor["items"]] == ["Architecture Patterns"]
+
+
+def test_list_books_combines_author_and_title_filters(client, insert_book):
+    mark = {"id": ObjectId(), "name": "Mark Lutz"}
+    insert_book(title="Learning Python", authors=[mark])
+    insert_book(title="Programming Python", authors=[mark])
+    insert_book(title="Learning Go", authors=[{"id": ObjectId(), "name": "Jon Bodner"}])
+
+    response = client.get("/books", params={"author": "Mark", "title": "Learning"})
+
+    assert [book["title"] for book in response.json()["items"]] == ["Learning Python"]
+
+
+def test_list_books_requires_all_given_tags(client, insert_book):
+    insert_book(title="A", tags=["Python", "Learning"])
+    insert_book(title="B", tags=["Python"])
+    insert_book(title="C", tags=["Go", "Learning"])
+
+    one_tag = client.get("/books", params={"tags": "Python"}).json()
+    two_tags = client.get("/books", params={"tags": ["Python", "Learning"]}).json()
+
+    assert [book["title"] for book in one_tag["items"]] == ["A", "B"]
+    assert [book["title"] for book in two_tags["items"]] == ["A"]
+    assert two_tags["total"] == 1
+
+
+def test_list_books_treats_filter_input_as_literal_text(client, insert_book):
+    insert_book(title="C++ Primer")
+    insert_book(title="CCC")
+
+    response = client.get("/books", params={"title": "C++"})
+
+    assert [book["title"] for book in response.json()["items"]] == ["C++ Primer"]
+
+
 def test_create_book_embeds_authors(client, mongo_db, insert_author):
     author = insert_author(name="Mark Lutz")
 
