@@ -90,3 +90,8 @@ class AuthorWithBookCount(BaseModel):
     name: str
     birth_date: date | None
     book_count: int
+
+
+class PublisherWithAveragePages(BaseModel):
+    publisher: str
+    average_pages: float

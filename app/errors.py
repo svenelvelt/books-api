@@ -24,6 +24,12 @@ class AuthorNotFound(AppError):
     detail = "Author not found"
 
 
+class PublisherNotFound(AppError):
+    status_code = 404
+    code = "publisher_not_found"
+    detail = "Publisher not found"
+
+
 class UnknownAuthors(AppError):
     status_code = 422
     code = "unknown_authors"
