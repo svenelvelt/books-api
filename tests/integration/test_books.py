@@ -276,3 +276,23 @@ def test_patch_with_unknown_author_returns_422_and_keeps_book(
     body = assert_error(response, 422, "unknown_authors")
     assert body["detail"] == f"Unknown author ids: {unknown}"
     assert mongo_db.books.find_one({"_id": book["_id"]}) == book
+
+
+def test_create_book_with_invalid_body_returns_422_and_stores_nothing(
+    client, mongo_db, insert_author
+):
+    author = insert_author()
+
+    response = client.post(
+        "/books",
+        json={
+            "title": "  ",
+            "publisher": "O'Reilly Media",
+            "author_ids": [str(author["_id"])],
+            "pages": 0,
+        },
+    )
+
+    errors = assert_error(response, 422, "validation_error")["errors"]
+    assert sorted(error["loc"][1] for error in errors) == ["pages", "title"]
+    assert mongo_db.books.count_documents({}) == 0

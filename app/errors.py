@@ -30,6 +30,12 @@ class PublisherNotFound(AppError):
     detail = "Publisher not found"
 
 
+class DatabaseUnavailable(AppError):
+    status_code = 503
+    code = "database_unavailable"
+    detail = "Database unavailable"
+
+
 class UnknownAuthors(AppError):
     status_code = 422
     code = "unknown_authors"

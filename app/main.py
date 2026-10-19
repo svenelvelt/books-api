@@ -15,7 +15,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        client = AsyncMongoClient(settings.mongodb_uri, tz_aware=True)
+        client = AsyncMongoClient(
+            settings.mongodb_uri,
+            tz_aware=True,
+            serverSelectionTimeoutMS=settings.mongodb_timeout_ms,
+        )
         app.state.db = client[settings.mongodb_database]
         await create_indexes(app.state.db)
         try:

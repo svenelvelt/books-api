@@ -1,12 +1,14 @@
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from bson import ObjectId
 from pydantic import (
     AfterValidator,
     BaseModel,
     BeforeValidator,
+    ConfigDict,
     Field,
+    StringConstraints,
     field_validator,
     model_validator,
 )
@@ -19,7 +21,18 @@ def _stringify_object_id(value: object) -> object:
 def _check_object_id(value: str) -> str:
     if not ObjectId.is_valid(value):
         raise ValueError("Invalid ObjectId")
-    return value
+    # Canonical lowercase form, so case variants of one id compare equal.
+    return str(ObjectId(value))
+
+
+def _reject_duplicates(values: list) -> list:
+    if len(set(values)) != len(values):
+        raise ValueError("must not contain duplicates")
+    return values
+
+
+def _drop_duplicates(values: list) -> list:
+    return list(dict.fromkeys(values))
 
 
 # Accepts an ObjectId (from MongoDB) or its 24-char hex string (from clients)
@@ -29,6 +42,18 @@ ObjectIdStr = Annotated[
     BeforeValidator(_stringify_object_id),
     AfterValidator(_check_object_id),
 ]
+
+
+# The 500-character cap bounds input size; it is not meant as a business rule.
+Text = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)
+]
+# Strict so JSON true or "12" is rejected instead of silently coerced.
+Pages = Annotated[int, Field(strict=True, gt=0, le=100_000)]
+AuthorIds = Annotated[
+    list[ObjectIdStr], Field(min_length=1), AfterValidator(_reject_duplicates)
+]
+Tags = Annotated[list[Text], AfterValidator(_drop_duplicates)]
 
 
 class AuthorRef(BaseModel):
@@ -48,19 +73,23 @@ class Book(BaseModel):
 
 
 class BookCreate(BaseModel):
-    title: str
-    publisher: str
-    author_ids: list[ObjectIdStr]
-    pages: int
-    tags: list[str] = []
+    model_config = ConfigDict(extra="forbid")
+
+    title: Text
+    publisher: Text
+    author_ids: AuthorIds
+    pages: Pages
+    tags: Tags = []
 
 
 class BookUpdate(BaseModel):
-    title: str | None = None
-    publisher: str | None = None
-    author_ids: list[ObjectIdStr] | None = None
-    pages: int | None = None
-    tags: list[str] | None = None
+    model_config = ConfigDict(extra="forbid")
+
+    title: Text | None = None
+    publisher: Text | None = None
+    author_ids: AuthorIds | None = None
+    pages: Pages | None = None
+    tags: Tags | None = None
 
     # Fields are optional so clients can send only what changes, but a field
     # that is sent must not be null. Field validators only run on sent fields.
@@ -88,3 +117,7 @@ class AuthorWithBookCount(BaseModel):
 class PublisherWithAveragePages(BaseModel):
     publisher: str
     average_pages: float
+
+
+class HealthStatus(BaseModel):
+    status: Literal["ok"]
