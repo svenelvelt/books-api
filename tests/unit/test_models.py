@@ -1,8 +1,10 @@
+from datetime import date, timedelta
+
 import pytest
 from bson import ObjectId
 from pydantic import ValidationError
 
-from app.models import BookCreate, BookUpdate
+from app.models import AuthorCreate, BookCreate, BookUpdate
 
 AUTHOR_ID = str(ObjectId())
 
@@ -121,3 +123,34 @@ def test_book_update_rejects_null(field):
 def test_book_update_rejects_empty_body():
     with pytest.raises(ValidationError):
         BookUpdate.model_validate({})
+
+
+def test_author_create_accepts_name_and_optional_birth_date():
+    assert AuthorCreate.model_validate({"name": " Mark Lutz "}).model_dump() == {
+        "name": "Mark Lutz",
+        "birth_date": None,
+    }
+    assert AuthorCreate.model_validate(
+        {"name": "Jane Example", "birth_date": "1960-05-01"}
+    ).birth_date == date(1960, 5, 1)
+
+
+@pytest.mark.parametrize(
+    "data, field",
+    [
+        ({"name": "  "}, "name"),
+        ({"name": "x" * 501}, "name"),
+        ({}, "name"),
+        ({"name": "x", "birth_date": "not-a-date"}, "birth_date"),
+        (
+            {"name": "x", "birth_date": str(date.today() + timedelta(days=1))},
+            "birth_date",
+        ),
+        ({"name": "x", "nmae": "typo"}, "nmae"),
+    ],
+)
+def test_author_create_rejects_invalid_field(data, field):
+    with pytest.raises(ValidationError) as exc:
+        AuthorCreate.model_validate(data)
+
+    assert error_fields(exc.value) == {field}

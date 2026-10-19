@@ -1,9 +1,11 @@
+from datetime import UTC, datetime, time
+
 from bson import ObjectId
 from fastapi import APIRouter
 
 from app.db import Database
 from app.errors import AuthorNotFound
-from app.models import AuthorWithBookCount, Book, ObjectIdStr
+from app.models import Author, AuthorCreate, AuthorWithBookCount, Book, ObjectIdStr
 from app.pagination import Page, PageParams, paginate
 
 router = APIRouter(prefix="/authors", tags=["authors"])
@@ -49,3 +51,13 @@ async def list_authors(
     total = await db.authors.count_documents({})
 
     return Page(items=items, total=total, page=pagination.page, limit=pagination.limit)
+
+
+@router.post("", status_code=201)
+async def create_author(db: Database, author_create: AuthorCreate) -> Author:
+    author = author_create.model_dump()
+    if author["birth_date"] is not None:
+        # MongoDB has no date-only type, so store midnight UTC.
+        author["birth_date"] = datetime.combine(author["birth_date"], time(), UTC)
+    result = await db.authors.insert_one(author)
+    return Author.model_validate(author | {"_id": result.inserted_id})

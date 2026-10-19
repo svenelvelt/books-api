@@ -119,3 +119,55 @@ def test_list_authors_returns_birth_date_as_date(client, insert_author):
             "book_count": 0,
         },
     ]
+
+
+def test_create_author_returns_201_and_stores_birth_date_as_utc_midnight(
+    client, mongo_db
+):
+    response = client.post(
+        "/authors", json={"name": "Jane Example", "birth_date": "1960-05-01"}
+    )
+
+    assert response.status_code == 201
+    author = response.json()
+    assert author == {
+        "id": author["id"],
+        "name": "Jane Example",
+        "birth_date": "1960-05-01",
+    }
+    stored = mongo_db.authors.find_one({"_id": ObjectId(author["id"])})
+    assert stored["birth_date"] == datetime(1960, 5, 1, tzinfo=UTC)
+
+
+def test_create_author_without_birth_date(client):
+    response = client.post("/authors", json={"name": "Mark Lutz"})
+
+    assert response.status_code == 201
+    assert response.json()["birth_date"] is None
+
+
+def test_create_author_with_invalid_body_returns_422_and_stores_nothing(
+    client, mongo_db
+):
+    response = client.post("/authors", json={"name": " "})
+
+    error = assert_error(response, 422, "validation_error")["errors"][0]
+    assert error["loc"] == ["body", "name"]
+    assert mongo_db.authors.count_documents({}) == 0
+
+
+def test_created_author_can_be_used_for_a_book(client):
+    author = client.post("/authors", json={"name": "Mark Lutz"}).json()
+
+    book = client.post(
+        "/books",
+        json={
+            "title": "Learning Python",
+            "publisher": "O'Reilly Media",
+            "author_ids": [author["id"]],
+            "pages": 1648,
+        },
+    )
+
+    assert book.status_code == 201
+    assert client.get("/authors").json()["items"] == [author | {"book_count": 1}]

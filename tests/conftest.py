@@ -21,18 +21,9 @@ def mongo_db():
 
 
 @pytest.fixture(scope="session")
-def app_client(mongo_db):
+def client(mongo_db):
     with TestClient(create_app(TEST_SETTINGS)) as client:
         yield client
-
-
-@pytest.fixture
-def client(app_client, mongo_db):
-    # Clear documents but keep collections and indexes, so each test is isolated
-    # without paying for a full startup per test.
-    for name in mongo_db.list_collection_names():
-        mongo_db[name].delete_many({})
-    return app_client
 
 
 @pytest.fixture

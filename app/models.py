@@ -107,10 +107,26 @@ class BookUpdate(BaseModel):
         return self
 
 
-class AuthorWithBookCount(BaseModel):
+def _reject_future(value: date | None) -> date | None:
+    if value is not None and value > date.today():
+        raise ValueError("must not be in the future")
+    return value
+
+
+class AuthorCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: Text
+    birth_date: Annotated[date | None, AfterValidator(_reject_future)] = None
+
+
+class Author(BaseModel):
     id: ObjectIdStr = Field(validation_alias="_id")
     name: str
     birth_date: date | None
+
+
+class AuthorWithBookCount(Author):
     book_count: int
 
 
