@@ -2,19 +2,19 @@ from datetime import UTC, datetime
 
 from bson import ObjectId
 
+from tests.helpers import assert_error
+
 
 def test_get_unknown_book_return_404(client):
     response = client.get(f"/books/{ObjectId()}")
 
-    assert response.status_code == 404
-    assert response.json() == {"detail": "Book not found"}
+    assert_error(response, 404, "book_not_found")
 
 
 def test_get_invalid_book_id_return_422(client):
     response = client.get("/books/invalid_id")
 
-    assert response.status_code == 422
-    error = response.json()["detail"][0]
+    error = assert_error(response, 422, "validation_error")["errors"][0]
     assert error["loc"] == ["path", "book_id"]
     assert "ObjectId" in error["msg"]
 
@@ -152,9 +152,10 @@ def test_create_book_with_unknown_author_returns_422(client, mongo_db):
         json={"title": "x", "publisher": "y", "pages": 1, "author_ids": [str(unknown)]},
     )
 
-    assert response.status_code == 422
-    assert response.json() == {"detail": f"Unknown author ids: {unknown}"}
+    body = assert_error(response, 422, "unknown_authors")
+    assert body["detail"] == f"Unknown author ids: {unknown}"
     assert mongo_db.books.count_documents({}) == 0
+
 
 def test_delete_book_removes_it(client, insert_book):
     book = insert_book()
@@ -164,3 +165,16 @@ def test_delete_book_removes_it(client, insert_book):
     assert response.status_code == 204
     assert response.content == b""
     assert client.get(f"/books/{book['_id']}").status_code == 404
+
+
+def test_delete_unknown_book_returns_404(client):
+    response = client.delete(f"/books/{ObjectId()}")
+
+    assert_error(response, 404, "book_not_found")
+
+
+def test_delete_invalid_book_id_returns_422(client):
+    response = client.delete("/books/invalid_id")
+
+    error = assert_error(response, 422, "validation_error")["errors"][0]
+    assert error["loc"] == ["path", "book_id"]

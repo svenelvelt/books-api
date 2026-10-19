@@ -6,6 +6,7 @@ from pymongo import AsyncMongoClient
 
 from app import books, health
 from app.config import Settings
+from app.errors import register_error_handlers
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -21,6 +22,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             await client.close()
 
     app = FastAPI(title="Books API", lifespan=lifespan)
+    register_error_handlers(app)
     app.include_router(health.router)
     app.include_router(books.router)
     return app

@@ -3,9 +3,10 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
 from app.db import Database
+from app.errors import BookNotFound, UnknownAuthors
 from app.models import Book, BookCreate, ObjectIdStr, Page
 
 router = APIRouter(prefix="/books", tags=["books"])
@@ -53,7 +54,7 @@ async def list_books(
 async def get_book(db: Database, book_id: ObjectIdStr) -> Book:
     book = await db.books.find_one({"_id": ObjectId(book_id)})
     if book is None:
-        raise HTTPException(status_code=404, detail="Book not found")
+        raise BookNotFound
     return Book.model_validate(book)
 
 
@@ -66,9 +67,7 @@ async def create_book(db: Database, book_create: BookCreate) -> Book:
     }
     missing = [str(author_id) for author_id in author_ids if author_id not in names]
     if missing:
-        raise HTTPException(
-            status_code=422, detail=f"Unknown author ids: {', '.join(missing)}"
-        )
+        raise UnknownAuthors(missing)
 
     now = datetime.now(UTC)
     # MongoDB stores milliseconds, so truncate to return what a later GET returns.
@@ -83,8 +82,9 @@ async def create_book(db: Database, book_create: BookCreate) -> Book:
     result = await db.books.insert_one(book)
     return Book.model_validate(book | {"_id": result.inserted_id})
 
+
 @router.delete("/{book_id}", status_code=204)
 async def delete_book(db: Database, book_id: ObjectIdStr) -> None:
     result = await db.books.delete_one({"_id": ObjectId(book_id)})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Book not found")
+        raise BookNotFound
