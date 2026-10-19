@@ -9,6 +9,7 @@ from pymongo import ReturnDocument
 from app.db import Database
 from app.errors import BookNotFound, UnknownAuthors
 from app.models import Book, BookCreate, BookUpdate, ObjectIdStr, Page
+from app.pagination import PageParams, paginate
 
 router = APIRouter(prefix="/books", tags=["books"])
 
@@ -41,20 +42,13 @@ def build_book_filter(
 @router.get("")
 async def list_books(
     db: Database,
-    page: Annotated[int, Query(ge=1)] = 1,
-    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    pagination: PageParams,
     title: str | None = None,
     author: str | None = None,
     tags: Annotated[list[str] | None, Query()] = None,
 ) -> Page[Book]:
     query = build_book_filter(title=title, author=author, tags=tags)
-    cursor = db.books.find(query).sort("_id").skip((page - 1) * limit).limit(limit)
-    return Page(
-        items=[Book.model_validate(book) async for book in cursor],
-        total=await db.books.count_documents(query),
-        page=page,
-        limit=limit,
-    )
+    return await paginate(db.books, query, pagination, Book)
 
 
 @router.get("/{book_id}")

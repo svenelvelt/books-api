@@ -18,6 +18,12 @@ class BookNotFound(AppError):
     detail = "Book not found"
 
 
+class AuthorNotFound(AppError):
+    status_code = 404
+    code = "author_not_found"
+    detail = "Author not found"
+
+
 class UnknownAuthors(AppError):
     status_code = 422
     code = "unknown_authors"

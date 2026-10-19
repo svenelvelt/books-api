@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from pymongo import AsyncMongoClient
 
-from app import books, health
+from app import authors, books, health
 from app.config import Settings
 from app.errors import register_error_handlers
 
@@ -25,6 +25,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_error_handlers(app)
     app.include_router(health.router)
     app.include_router(books.router)
+    app.include_router(authors.router)
     return app
 
 

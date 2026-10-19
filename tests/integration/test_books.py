@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+import pytest
 from bson import ObjectId
 
 from tests.helpers import assert_error
@@ -53,6 +54,27 @@ def test_list_books_paginates_in_insertion_order(client, insert_book):
         "total": 3,
         "page": 2,
         "limit": 2,
+    }
+
+
+@pytest.mark.parametrize(
+    "params, field",
+    [({"page": 0}, "page"), ({"limit": 0}, "limit"), ({"limit": 101}, "limit")],
+)
+def test_list_books_rejects_out_of_range_pagination(client, params, field):
+    response = client.get("/books", params=params)
+
+    error = assert_error(response, 422, "validation_error")["errors"][0]
+    assert error["loc"] == ["query", field]
+
+
+def test_list_books_defaults_to_first_page_of_20(client):
+    body = client.get("/books").json()
+
+    assert {k: v for k, v in body.items() if k != "items"} == {
+        "total": 0,
+        "page": 1,
+        "limit": 20,
     }
 
 
