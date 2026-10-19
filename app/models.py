@@ -2,7 +2,14 @@ from datetime import datetime
 from typing import Annotated
 
 from bson import ObjectId
-from pydantic import AfterValidator, BaseModel, BeforeValidator, Field
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 
 def _stringify_object_id(value: object) -> object:
@@ -53,3 +60,26 @@ class BookCreate(BaseModel):
     author_ids: list[ObjectIdStr]
     pages: int
     tags: list[str] = []
+
+
+class BookUpdate(BaseModel):
+    title: str | None = None
+    publisher: str | None = None
+    author_ids: list[ObjectIdStr] | None = None
+    pages: int | None = None
+    tags: list[str] | None = None
+
+    # Fields are optional so clients can send only what changes, but a field
+    # that is sent must not be null. Field validators only run on sent fields.
+    @field_validator("*")
+    @classmethod
+    def _reject_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("must not be null")
+        return value
+
+    @model_validator(mode="after")
+    def _reject_empty(self) -> "BookUpdate":
+        if not self.model_fields_set:
+            raise ValueError("at least one field is required")
+        return self

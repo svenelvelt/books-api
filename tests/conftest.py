@@ -13,7 +13,7 @@ TEST_SETTINGS = Settings(mongodb_database="books_test")
 
 @pytest.fixture(scope="session")
 def mongo_db():
-    client = MongoClient(TEST_SETTINGS.mongodb_uri)
+    client = MongoClient(TEST_SETTINGS.mongodb_uri, tz_aware=True)
     client.drop_database(TEST_SETTINGS.mongodb_database)
     yield client[TEST_SETTINGS.mongodb_database]
     client.drop_database(TEST_SETTINGS.mongodb_database)

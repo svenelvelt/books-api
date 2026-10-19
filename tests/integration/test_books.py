@@ -178,3 +178,79 @@ def test_delete_invalid_book_id_returns_422(client):
 
     error = assert_error(response, 422, "validation_error")["errors"][0]
     assert error["loc"] == ["path", "book_id"]
+
+
+def test_patch_book_updates_only_given_fields(client, insert_book):
+    book = insert_book(title="Old", pages=100)
+
+    response = client.patch(f"/books/{book['_id']}", json={"title": "New"})
+
+    assert response.status_code == 200
+    patched = response.json()
+    assert patched["title"] == "New"
+    assert patched["pages"] == 100
+    assert patched["created_at"] == "2017-01-12T00:00:00Z"
+    assert patched["updated_at"] > patched["created_at"]
+    assert client.get(f"/books/{book['_id']}").json() == patched
+
+
+def test_patch_unknown_book_returns_404(client):
+    response = client.patch(f"/books/{ObjectId()}", json={"title": "New"})
+
+    assert_error(response, 404, "book_not_found")
+
+
+def test_patch_rejects_null_for_a_field(client, mongo_db, insert_book):
+    book = insert_book(title="Old")
+
+    response = client.patch(f"/books/{book['_id']}", json={"title": None})
+
+    error = assert_error(response, 422, "validation_error")["errors"][0]
+    assert error["loc"] == ["body", "title"]
+    assert mongo_db.books.find_one({"_id": book["_id"]})["title"] == "Old"
+
+
+def test_patch_rejects_empty_body(client, insert_book):
+    book = insert_book()
+
+    response = client.patch(f"/books/{book['_id']}", json={})
+
+    error = assert_error(response, 422, "validation_error")["errors"][0]
+    assert error["loc"] == ["body"]
+
+
+def test_patch_author_ids_embeds_the_new_authors(
+    client, mongo_db, insert_book, insert_author
+):
+    book = insert_book()
+    harry = insert_author(name="Harry Percival")
+    bob = insert_author(name="Bob Gregory")
+
+    response = client.patch(
+        f"/books/{book['_id']}",
+        json={"author_ids": [str(harry["_id"]), str(bob["_id"])]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["authors"] == [
+        {"id": str(harry["_id"]), "name": "Harry Percival"},
+        {"id": str(bob["_id"]), "name": "Bob Gregory"},
+    ]
+    stored = mongo_db.books.find_one({"_id": book["_id"]})
+    assert "author_ids" not in stored
+    assert [author["id"] for author in stored["authors"]] == [harry["_id"], bob["_id"]]
+
+
+def test_patch_with_unknown_author_returns_422_and_keeps_book(
+    client, mongo_db, insert_book
+):
+    book = insert_book()
+    unknown = ObjectId()
+
+    response = client.patch(
+        f"/books/{book['_id']}", json={"author_ids": [str(unknown)]}
+    )
+
+    body = assert_error(response, 422, "unknown_authors")
+    assert body["detail"] == f"Unknown author ids: {unknown}"
+    assert mongo_db.books.find_one({"_id": book["_id"]}) == book
