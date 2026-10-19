@@ -6,6 +6,7 @@ from pymongo import AsyncMongoClient
 
 from app import authors, books, health, publishers
 from app.config import Settings
+from app.db import create_indexes
 from app.errors import register_error_handlers
 
 
@@ -16,6 +17,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         client = AsyncMongoClient(settings.mongodb_uri, tz_aware=True)
         app.state.db = client[settings.mongodb_database]
+        await create_indexes(app.state.db)
         try:
             yield
         finally:
