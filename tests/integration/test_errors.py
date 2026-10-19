@@ -2,6 +2,7 @@ from bson import ObjectId
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from tests.helpers import assert_error
 
 # These pin the full error envelope once. Other tests only check status and code.
 
@@ -45,3 +46,10 @@ def test_unexpected_error_returns_500_without_leaking_details():
 
     assert response.status_code == 500
     assert response.json() == {"code": "internal_error", "detail": "Internal error"}
+
+
+def test_database_outage_returns_503_on_regular_endpoints(client, unreachable_db):
+    # The handler is app-wide, so one regular endpoint stands for all of them.
+    response = client.get("/books")
+
+    assert_error(response, 503, "database_unavailable")

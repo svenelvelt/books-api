@@ -1,22 +1,9 @@
 import time
 
-import pytest
-from pymongo import AsyncMongoClient
+from pymongo.errors import OperationFailure
 
 from app.config import Settings
 from tests.helpers import assert_error
-
-
-@pytest.fixture
-def unreachable_db(client, monkeypatch):
-    """Simulate MongoDB going away after startup: nothing listens on port 1."""
-    unreachable = AsyncMongoClient(
-        "mongodb://localhost:1", serverSelectionTimeoutMS=100
-    )
-    monkeypatch.setattr(client.app.state, "db", unreachable["books_test"])
-    yield
-    # Close on the app's event loop, where the client was used.
-    client.portal.call(unreachable.close)
 
 
 def test_liveness_returns_ok(client):
@@ -41,6 +28,18 @@ def test_readiness_returns_503_quickly_when_database_is_unreachable(
 
     assert_error(response, 503, "database_unavailable")
     assert time.monotonic() - started < 2
+
+
+def test_readiness_returns_503_for_other_database_errors(client, monkeypatch):
+    # E.g. wrong credentials: MongoDB is reachable but refuses the command.
+    # Regular endpoints treat such errors as bugs (500); readiness must not.
+    class RefusingDatabase:
+        async def command(self, name):
+            raise OperationFailure("Authentication failed.", code=18)
+
+    monkeypatch.setattr(client.app.state, "db", RefusingDatabase())
+
+    assert_error(client.get("/health/ready"), 503, "database_unavailable")
 
 
 def test_liveness_does_not_depend_on_the_database(client, unreachable_db):

@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from bson import ObjectId
@@ -143,7 +143,10 @@ def test_author_create_accepts_name_and_optional_birth_date():
         ({}, "name"),
         ({"name": "x", "birth_date": "not-a-date"}, "birth_date"),
         (
-            {"name": "x", "birth_date": str(date.today() + timedelta(days=1))},
+            {
+                "name": "x",
+                "birth_date": str(datetime.now(UTC).date() + timedelta(days=1)),
+            },
             "birth_date",
         ),
         ({"name": "x", "nmae": "typo"}, "nmae"),

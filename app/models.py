@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Annotated, Literal
 
 from bson import ObjectId
@@ -108,7 +108,7 @@ class BookUpdate(BaseModel):
 
 
 def _reject_future(value: date | None) -> date | None:
-    if value is not None and value > date.today():
+    if value is not None and value > datetime.now(UTC).date():
         raise ValueError("must not be in the future")
     return value
 

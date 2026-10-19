@@ -1,9 +1,13 @@
+import logging
 from http import HTTPStatus
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pymongo.errors import ConnectionFailure
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+logger = logging.getLogger(__name__)
 
 
 class AppError(Exception):
@@ -76,6 +80,16 @@ async def _http_error(request: Request, exc: StarletteHTTPException) -> JSONResp
     return error_response(exc.status_code, code, exc.detail, headers=exc.headers)
 
 
+async def _database_unavailable(
+    request: Request, exc: ConnectionFailure
+) -> JSONResponse:
+    # Covers server selection timeouts too. An outage is not a bug in the app,
+    # so answer 503 (retry later) rather than 500, and keep the cause in the log.
+    logger.warning("MongoDB unavailable: %s", exc)
+    error = DatabaseUnavailable
+    return error_response(error.status_code, error.code, error.detail)
+
+
 async def _unexpected_error(request: Request, exc: Exception) -> JSONResponse:
     # Starlette re-raises after this handler, so the server still logs the
     # traceback; the client only gets the generic envelope.
@@ -86,4 +100,5 @@ def register_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(AppError, _app_error)
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.add_exception_handler(StarletteHTTPException, _http_error)
+    app.add_exception_handler(ConnectionFailure, _database_unavailable)
     app.add_exception_handler(Exception, _unexpected_error)
