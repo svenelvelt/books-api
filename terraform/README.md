@@ -30,7 +30,7 @@ EKS would be a cluster to run for a single service, and EC2 means patching hosts
 
 ### Database: Atlas
 
-Atlas runs the same MongoDB 8 that the tests run against. DocumentDB is only MongoDB-compatible: before relying on it, the aggregations here, such as the `$lookup` with a sub-pipeline behind `GET /authors`, would have to be verified against it. Self-managed MongoDB on EC2 would make replica sets, backups and upgrades our job. The trade-off is a second Terraform provider and an Atlas account.
+Atlas runs the same MongoDB major version that the tests run against. DocumentDB is only MongoDB-compatible: before relying on it, the aggregations here, such as the `$lookup` with a sub-pipeline behind `GET /authors`, would have to be verified against it. Self-managed MongoDB on EC2 would make replica sets, backups and upgrades our job. The trade-off is a second Terraform provider and an Atlas account. The cluster is pinned to 8.0, the long-term support release, so upgrades happen on purpose. CI and Docker Compose use 8.2 for now, because the 8.0 image refuses to start on recent Linux kernels ([SERVER-121912](https://jira.mongodb.org/browse/SERVER-121912)); they can move back to 8.0 once a fixed 8.0 release is out.
 
 ### Hardening
 

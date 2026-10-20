@@ -14,6 +14,9 @@ resource "mongodbatlas_advanced_cluster" "main" {
   name         = var.name
   cluster_type = "REPLICASET"
 
+  # The long-term support release, so upgrades are a deliberate change.
+  mongo_db_major_version = "8.0"
+
   backup_enabled                 = true
   termination_protection_enabled = true
 
