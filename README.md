@@ -173,11 +173,14 @@ The tests need a MongoDB on `localhost:27017`. They use a separate `books_test` 
 ```bash
 uv sync
 uv run pytest              # all tests
+uv run pytest --cov        # with a coverage report; fails below 95%
 uv run pytest tests/unit   # unit tests only, no MongoDB needed
 uv run ruff check . && uv run ruff format --check .
 ```
 
 Unit tests cover the request models and the filter builder. Integration tests call every endpoint against a real MongoDB, including error cases, aggregations, indexes, seeding and database outages.
+
+Coverage is about 98%; the only untested lines are the seed command's command-line wrapper. CI runs the tests with coverage, fails if it drops below 95%, and adds the report to each run's summary page.
 
 ## CI and production
 
