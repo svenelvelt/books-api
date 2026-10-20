@@ -1,6 +1,6 @@
 # Production infrastructure on AWS
 
-This Terraform describes how the Books API runs in production. It has been checked with `terraform fmt` and `terraform validate` (Terraform 1.16, AWS provider 6.x, MongoDB Atlas provider 2.x), but not applied to real accounts.
+This Terraform describes how the Books API runs in production. CI checks it with `terraform fmt` and `terraform validate` on every push (Terraform 1.16, AWS provider 6.x, MongoDB Atlas provider 2.x). It has not been applied to real accounts.
 
 ## The two questions
 

@@ -46,6 +46,22 @@ jobs:
       - name: Build image
         run: docker build -t books-api .
 
+  terraform:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.16.5"
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+      # No backend and no credentials: validate needs only the providers.
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+
   # Runs once the AWS side exists (see terraform/README.md): set the repository
   # variables AWS_DEPLOY_ROLE_ARN and AWS_REGION to enable it. The names below
   # (books-api) match Terraform's default `name` variable.
