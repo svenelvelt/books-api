@@ -8,10 +8,12 @@ from app import authors, books, health, publishers
 from app.config import Settings
 from app.db import create_indexes
 from app.errors import register_error_handlers
+from app.logs import configure_logging, log_requests
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings()
+    configure_logging(settings.log_level)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -29,6 +31,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="Books API", lifespan=lifespan)
     register_error_handlers(app)
+    app.middleware("http")(log_requests)
     app.include_router(health.router)
     app.include_router(books.router)
     app.include_router(authors.router)

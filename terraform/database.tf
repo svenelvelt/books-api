@@ -86,11 +86,8 @@ data "mongodbatlas_advanced_cluster" "main" {
 }
 
 locals {
-  private_srv = one([
-    for endpoint in data.mongodbatlas_advanced_cluster.main.connection_strings.private_endpoint :
-    endpoint.srv_connection_string
-    if anytrue([for e in endpoint.endpoints : e.endpoint_id == aws_vpc_endpoint.atlas.id])
-  ])
+  # The cluster has exactly one private endpoint, the one created above.
+  private_srv = data.mongodbatlas_advanced_cluster.main.connection_strings.private_endpoint[0].srv_connection_string
 
   mongodb_uri = "${local.private_srv}/?authSource=%24external&authMechanism=MONGODB-AWS&retryWrites=true&w=majority"
 }

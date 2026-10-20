@@ -29,6 +29,7 @@ uv run uvicorn app.main:app --reload
 | `MONGODB_URI` | `mongodb://localhost:27017` | Connection string |
 | `MONGODB_DATABASE` | `books` | Database name |
 | `MONGODB_TIMEOUT_MS` | `5000` | How long to wait for MongoDB before failing |
+| `LOG_LEVEL` | `INFO` | Log level, e.g. `DEBUG` or `WARNING` |
 
 ## Database
 
@@ -165,6 +166,16 @@ All errors share one shape: a machine-readable `code`, a `detail` message, and f
 ### Validation
 
 Text fields are trimmed and must be 1 to 500 characters; `pages` must be an integer from 1 to 100,000; `author_ids` needs at least one id and no duplicates; `birth_date` cannot be in the future. Unknown fields are rejected, including the server-managed `id`, `created_at` and `updated_at`. `PATCH` needs at least one field, and sent fields must not be `null`.
+
+## Logs
+
+The API writes one JSON object per line, which CloudWatch Logs and similar tools can filter by field. Every request gets one line with its method, path, status and duration; the query string is left out, because it can contain user input. Successful health checks are not logged, since load balancers send them every few seconds.
+
+Each request has an ID, returned in the `X-Request-ID` response header and added to every log line written while handling it, including warnings and tracebacks. A valid `X-Request-ID` sent by the client is kept, otherwise a new random ID is used.
+
+```json
+{"time": "2026-10-20T12:53:05.640+00:00", "level": "INFO", "logger": "app.access", "message": "GET /books 200", "request_id": "demo-1", "method": "GET", "path": "/books", "status": 200, "duration_ms": 4.5}
+```
 
 ## Testing
 

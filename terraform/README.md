@@ -61,6 +61,15 @@ On every push to `main` that passes CI, GitHub Actions assumes the deploy role t
 
 CloudWatch alarms cover what users would notice first: a 5xx rate above 5% of requests, any task failing readiness for three minutes, a p95 response time above one second, and task CPU or memory above 80%. The error alarm uses a rate rather than a count, so the same threshold works at any traffic level. Alarms and recoveries go to an SNS topic, with an optional email subscription through `alarm_email`; chat or paging tools can subscribe to the same topic.
 
+The API logs one JSON line per request to CloudWatch Logs, with a request ID that is also returned to the client. When an alarm fires, CloudWatch Logs Insights finds the requests behind it:
+
+```
+fields @timestamp, method, path, status, duration_ms, request_id
+| filter logger = "app.access" and status >= 500
+| sort @timestamp desc
+| limit 50
+```
+
 ### State
 
 State is kept in S3 with native lock files. The bucket and key are supplied at `init`, so separate environments can use the same code with different state. The bucket should be versioned and encrypted. Because the database uses IAM authentication, the state holds no database credentials.
@@ -88,7 +97,7 @@ sed -i.bak "s/^image_tag = .*/image_tag = \"$TAG\"/" terraform.tfvars
 terraform apply
 ```
 
-If the first `apply` fails because the private connection string is `null`, Atlas has not published it yet; running `terraform apply` again picks it up.
+If the first `apply` fails because the cluster has no private connection string yet, Atlas has not published it; running `terraform apply` again picks it up.
 
 Then:
 
