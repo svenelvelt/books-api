@@ -6,7 +6,13 @@ from app.books import build_book_filter
 
 
 @pytest.mark.parametrize(
-    "kwargs", [{}, {"title": None, "author": None, "tags": None}, {"title": ""}]
+    "kwargs",
+    [
+        {},
+        {"title": None, "author": None, "tags": None, "publisher": None},
+        {"title": ""},
+        {"publisher": ""},
+    ],
 )
 def test_no_filters_match_everything(kwargs):
     assert build_book_filter(**kwargs) == {}
@@ -28,6 +34,13 @@ def test_regex_characters_are_escaped():
 def test_author_matches_embedded_author_names():
     assert build_book_filter(author="Mark") == {
         "authors.name": {"$regex": "Mark", "$options": "i"}
+    }
+
+
+def test_publisher_is_an_exact_match():
+    # Exact, unlike title and author, so the publisher index can serve it.
+    assert build_book_filter(publisher="O'Reilly Media") == {
+        "publisher": "O'Reilly Media"
     }
 
 

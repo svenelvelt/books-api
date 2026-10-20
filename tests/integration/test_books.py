@@ -136,6 +136,19 @@ def test_list_books_requires_all_given_tags(client, insert_book):
     assert two_tags["total"] == 1
 
 
+def test_list_books_filters_by_exact_publisher(client, insert_book):
+    insert_book(title="A", publisher="O'Reilly Media")
+    insert_book(title="B", publisher="O'Reilly Media Press")
+    insert_book(title="C", publisher="Manning")
+
+    exact = client.get("/books", params={"publisher": "O'Reilly Media"}).json()
+    other_case = client.get("/books", params={"publisher": "o'reilly media"}).json()
+
+    assert [book["title"] for book in exact["items"]] == ["A"]
+    assert exact["total"] == 1
+    assert other_case["items"] == []
+
+
 def test_list_books_treats_filter_input_as_literal_text(client, insert_book):
     insert_book(title="C++ Primer")
     insert_book(title="CCC")

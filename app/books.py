@@ -28,6 +28,7 @@ def build_book_filter(
     title: str | None = None,
     author: str | None = None,
     tags: list[str] | None = None,
+    publisher: str | None = None,
 ) -> dict:
     query = {}
     if title:
@@ -36,6 +37,8 @@ def build_book_filter(
         query["authors.name"] = _contains(author)
     if tags:
         query["tags"] = {"$all": tags}
+    if publisher:
+        query["publisher"] = publisher
     return query
 
 
@@ -46,8 +49,11 @@ async def list_books(
     title: str | None = None,
     author: str | None = None,
     tags: Annotated[list[str] | None, Query()] = None,
+    publisher: str | None = None,
 ) -> Page[Book]:
-    query = build_book_filter(title=title, author=author, tags=tags)
+    query = build_book_filter(
+        title=title, author=author, tags=tags, publisher=publisher
+    )
     return await paginate(db.books, query, pagination, Book)
 
 
