@@ -186,7 +186,7 @@ Coverage is about 98%; the only untested lines are the seed command's command-li
 
 GitHub Actions runs the linters, the tests against a MongoDB service container, a Docker build and the Terraform checks (`fmt` and `validate`) on every push and pull request. Pushes to `main` are deployed to AWS once the infrastructure exists.
 
-[`terraform/`](terraform/README.md) defines the production setup: ECS Fargate behind an Application Load Balancer, and MongoDB Atlas over PrivateLink, with the tasks signing in to the database through their IAM role. Its README explains the decisions and how to deploy.
+[`terraform/`](terraform/README.md) defines the production setup: ECS Fargate behind an Application Load Balancer, and MongoDB Atlas over PrivateLink, with the tasks signing in to the database through their IAM role, and CloudWatch alarms for errors, health and latency. Its README explains the decisions and how to deploy.
 
 ## Design decisions
 

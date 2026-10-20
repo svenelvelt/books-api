@@ -13,6 +13,11 @@ output "deploy_role_arn" {
   value       = aws_iam_role.deploy.arn
 }
 
+output "alarm_topic_arn" {
+  description = "Subscribe other targets (chat, paging) to alarms here."
+  value       = aws_sns_topic.alarms.arn
+}
+
 output "ecs_cluster_name" {
   value = aws_ecs_cluster.main.name
 }

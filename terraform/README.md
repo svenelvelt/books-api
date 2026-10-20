@@ -21,6 +21,7 @@ In MongoDB Atlas: a three-node replica set in the same region, reached over AWS 
 | Database | Atlas project, cluster, PrivateLink endpoint, IAM database user | `database.tf` |
 | Access | ECS roles, GitHub OIDC provider and deploy role | `iam.tf` |
 | Firewall | One security group per hop: ALB → tasks → Atlas endpoint | `security.tf` |
+| Monitoring | CloudWatch alarms and an SNS topic for notifications | `monitoring.tf` |
 
 ## Decisions
 
@@ -55,6 +56,10 @@ The API mostly waits on MongoDB, so CPU stays low under load. Target tracking on
 ### Terraform owns the infrastructure, CI owns releases
 
 On every push to `main` that passes CI, GitHub Actions assumes the deploy role through OIDC, with no AWS keys stored in GitHub. It pushes an image tagged with the commit SHA and rolls out a new task definition revision. The deploy role can push only to this ECR repository and update only this service, but it can register task definitions that use the task role. Code merged to `main` therefore runs with database access, which is inherent to deploying from CI; branch protection on `main` is the control. The service ignores task definition and task count changes, so a later `terraform apply` does not undo a release or a scale-out. The flip side is that container settings changed in Terraform, such as environment variables or CPU, take effect with the next deploy from CI.
+
+### Monitoring
+
+CloudWatch alarms cover what users would notice first: a 5xx rate above 5% of requests, any task failing readiness for three minutes, a p95 response time above one second, and task CPU or memory above 80%. The error alarm uses a rate rather than a count, so the same threshold works at any traffic level. Alarms and recoveries go to an SNS topic, with an optional email subscription through `alarm_email`; chat or paging tools can subscribe to the same topic.
 
 ### State
 
@@ -100,9 +105,9 @@ Then:
 
 ## Not included
 
-- CloudWatch alarms (5xx rate, unhealthy targets) and Atlas alerts
+- Atlas alerts sent to the same SNS topic, and a CloudWatch dashboard
 - AWS WAF on the load balancer, and the domain and certificate in Route 53 and ACM
 - ALB access logs and VPC flow logs
 - A staging environment: the same code with a second state key and `tfvars` file
 - An approval gate for production deploys: a GitHub Environment with required reviewers, with the deploy role's trust narrowed to that environment
-- Blue/green deployments (native in ECS) with a CloudWatch alarm on the 5xx rate, so a release that passes health checks but fails real requests is rolled back by switching traffic, not by redeploying
+- Blue/green deployments (native in ECS) that roll back on the 5xx alarm, so a release that passes health checks but fails real requests is rolled back by switching traffic, not by redeploying

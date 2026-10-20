@@ -4,6 +4,7 @@ atlas_org_id    = "000000000000000000000000"
 image_tag = "0123abc"
 
 # Optional overrides:
+# alarm_email         = "ops@example.com"
 # aws_region          = "eu-west-1"
 # atlas_instance_size = "M10"
 # min_tasks           = 2

@@ -73,6 +73,12 @@ variable "database_name" {
   default     = "books"
 }
 
+variable "alarm_email" {
+  description = "Email address for alarm notifications. Without it, the alarm topic has no subscriber."
+  type        = string
+  default     = null
+}
+
 variable "github_repository" {
   description = "GitHub repository (owner/name) whose main branch may deploy."
   type        = string
