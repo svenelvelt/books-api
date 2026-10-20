@@ -44,7 +44,7 @@ ObjectIdStr = Annotated[
 ]
 
 
-# The 500-character cap bounds input size; it is not meant as a business rule.
+# Generous limit, only there to bound input size.
 Text = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)
 ]
@@ -91,8 +91,8 @@ class BookUpdate(BaseModel):
     pages: Pages | None = None
     tags: Tags | None = None
 
-    # Fields are optional so clients can send only what changes, but a field
-    # that is sent must not be null. Field validators only run on sent fields.
+    # Field validators only run on fields that were sent, so omitting a field
+    # is fine but sending null is not.
     @field_validator("*")
     @classmethod
     def _reject_null(cls, value: object) -> object:

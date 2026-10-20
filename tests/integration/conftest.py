@@ -4,8 +4,7 @@ from pymongo import AsyncMongoClient
 
 @pytest.fixture(autouse=True)
 def _clean_db(mongo_db):
-    # Every integration test starts with empty collections. Documents are
-    # deleted but collections and indexes stay, so there is no per-test startup.
+    # Delete documents but keep the collections and their indexes.
     for name in mongo_db.list_collection_names():
         mongo_db[name].delete_many({})
 

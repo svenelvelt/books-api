@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -38,3 +41,50 @@ jobs:
       - uses: actions/checkout@v7
       - name: Build image
         run: docker build -t books-api .
+
+  # Runs once the AWS side exists (see terraform/README.md): set the repository
+  # variables AWS_DEPLOY_ROLE_ARN and AWS_REGION to enable it. The names below
+  # (books-api) match Terraform's default `name` variable.
+  deploy:
+    needs: [test, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AWS_DEPLOY_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Exchange GitHub's OIDC token for the deploy role.
+    steps:
+      - uses: actions/checkout@v7
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push image
+        # Tags are immutable, so a re-run for the same commit reuses its image.
+        run: |
+          IMAGE="${{ steps.ecr.outputs.registry }}/books-api:${{ github.sha }}"
+          if aws ecr describe-images --repository-name books-api \
+              --image-ids imageTag=${{ github.sha }} > /dev/null 2>&1; then
+            echo "Image for ${{ github.sha }} already exists; reusing it."
+          else
+            docker build -t "$IMAGE" .
+            docker push "$IMAGE"
+          fi
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+      - name: Fetch current task definition
+        run: >-
+          aws ecs describe-task-definition --task-definition books-api
+          --query taskDefinition > task-definition.json
+      - id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: api
+          image: ${{ env.IMAGE }}
+      - uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          cluster: books-api
+          service: books-api
+          wait-for-service-stability: true

@@ -83,16 +83,14 @@ async def _http_error(request: Request, exc: StarletteHTTPException) -> JSONResp
 async def _database_unavailable(
     request: Request, exc: ConnectionFailure
 ) -> JSONResponse:
-    # Covers server selection timeouts too. An outage is not a bug in the app,
-    # so answer 503 (retry later) rather than 500, and keep the cause in the log.
+    # Also covers server selection timeouts. An outage gets a 503, not a 500.
     logger.warning("MongoDB unavailable: %s", exc)
     error = DatabaseUnavailable
     return error_response(error.status_code, error.code, error.detail)
 
 
 async def _unexpected_error(request: Request, exc: Exception) -> JSONResponse:
-    # Starlette re-raises after this handler, so the server still logs the
-    # traceback; the client only gets the generic envelope.
+    # Starlette re-raises after this, so the traceback still gets logged.
     return error_response(500, AppError.code, AppError.detail)
 
 

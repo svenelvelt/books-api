@@ -40,7 +40,7 @@ def _author_names(sample: dict) -> list[str]:
 
 
 def seed(db: Database) -> bool:
-    """Insert the sample data. Returns False, changing nothing, if data exists."""
+    """Insert the sample data if the database is empty. Returns whether it did."""
     if db.books.find_one({}, {"_id": 1}) or db.authors.find_one({}, {"_id": 1}):
         return False
 

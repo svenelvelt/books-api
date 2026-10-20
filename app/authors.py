@@ -53,8 +53,8 @@ async def list_authors(
         {"$unset": "counts"},
     ]
     items = [
-        AuthorWithBookCount.model_validate(a)
-        async for a in await db.authors.aggregate(pipeline)
+        AuthorWithBookCount.model_validate(author)
+        async for author in await db.authors.aggregate(pipeline)
     ]
     total = await db.authors.count_documents({})
 

@@ -38,8 +38,7 @@ def insert_author(mongo_db):
 
 @pytest.fixture
 def insert_book(mongo_db):
-    # Inserts straight into MongoDB, bypassing the API, and returns the stored
-    # document (with _id) so tests can build their expectations from it.
+    # Inserts directly, bypassing the API. Returns the stored document with _id.
     def insert(**overrides):
         book = {
             "title": "Learning Python",

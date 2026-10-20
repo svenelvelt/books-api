@@ -25,7 +25,7 @@ services:
   mongodb:
     image: mongo:8.0
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017" # No auth locally, so keep it off the network.
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 5s
