@@ -10,7 +10,9 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest is now Ubuntu 26.04, whose kernel MongoDB 8 refuses
+    # to start on (https://jira.mongodb.org/browse/SERVER-121912).
+    runs-on: ubuntu-24.04
     services:
       mongodb:
         image: mongo:8.0
@@ -36,7 +38,7 @@ jobs:
         run: uv run pytest
 
   docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - name: Build image
@@ -48,7 +50,7 @@ jobs:
   deploy:
     needs: [test, docker]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AWS_DEPLOY_ROLE_ARN != ''
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write # Exchange GitHub's OIDC token for the deploy role.
