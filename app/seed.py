@@ -1,4 +1,4 @@
-"""Load the challenge's sample books into an empty database.
+"""Load sample books into an empty database.
 
 Run with: uv run python -m app.seed
 """
@@ -10,7 +10,7 @@ from pymongo.database import Database
 
 from app.config import Settings
 
-# The sample data from the challenge, as given. Its integer ids are left out
+# Sample data in its original format. Its integer ids are left out
 # because the API uses ObjectIds, and "author" is converted into author
 # documents with embedded references.
 SAMPLE_BOOKS = [

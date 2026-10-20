@@ -1,5 +1,7 @@
 # Books API
 
+[![CI](https://github.com/svenelvelt/books-api/actions/workflows/ci.yml/badge.svg)](https://github.com/svenelvelt/books-api/actions/workflows/ci.yml)
+
 A REST API for books and their authors, built with FastAPI and MongoDB: CRUD with validation, pagination and filtering, plus author and publisher statistics built on MongoDB aggregations.
 
 **Stack:** Python 3.13, FastAPI, MongoDB 8 (async PyMongo), Pydantic, uv.
