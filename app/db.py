@@ -13,6 +13,11 @@ Database = Annotated[AsyncDatabase, Depends(get_db)]
 
 
 async def create_indexes(db: AsyncDatabase) -> None:
+    # Filter field first, then _id: list queries filter on one field and page
+    # sorted by _id, so the index returns matches already in order.
     await db.books.create_indexes(
-        [IndexModel("authors.id"), IndexModel("publisher"), IndexModel("tags")]
+        [
+            IndexModel([(field, 1), ("_id", 1)])
+            for field in ("authors.id", "publisher", "tags")
+        ]
     )
