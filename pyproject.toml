@@ -3,18 +3,18 @@ name = "books-api"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi>=0.162.0",
-    "pydantic-settings>=2.16.1",
-    "pymongo[aws]>=4.19.0",
+    "fastapi>=0.163.0",
+    "pydantic-settings>=2.16.3",
+    "pymongo[aws]>=4.20.0",
     "uvicorn>=0.54.0",
 ]
 
 [dependency-groups]
 dev = [
     "httpx2>=2.16.0",
-    "pytest>=9.1.1",
+    "pytest>=9.2.0",
     "pytest-cov>=7.1.0",
-    "ruff>=0.17.2",
+    "ruff>=0.17.5",
 ]
 
 [tool.ruff]
